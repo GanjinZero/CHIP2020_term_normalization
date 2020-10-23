@@ -1,5 +1,10 @@
 import os
-from load_icd_v3 import load_icd, load_train_icd, load_test_samples
+import sys
+sys.path.append("../")
+try:
+    from load_icd_v3 import load_icd, load_train_icd, load_test_samples
+except BaseException:
+    from rule_base.load_icd_v3 import load_icd, load_train_icd, load_test_samples
 from tqdm import tqdm
 import pkuseg
 import pickle
@@ -53,7 +58,7 @@ def get_word_tfidf(x_list, char_level = True):
             word_tfidf[word] = np.sqrt(word_count[word] / all_word_num) * np.log2(8000 / (1 + word_count_doc[word]))
     return word_tfidf
 
-def find_pairs(x, y, word_tfidf, co_exist):
+def find_pairs(x, y, word_tfidf, co_exist, cleaned_y):
     for word in x:
         if word in word_tfidf.keys() and word_tfidf[word] > 0.001 and y in cleaned_y and len(set(word).intersection(set(y))) == 0 and y not in ['癌','恶性肿瘤']:
             key = word + '-' + y
@@ -71,8 +76,8 @@ def fill_co_exsit_dict(x_list, y_list, word_tfidf, char_level = True):
         else:
             x_l = set(seg.cut(x_list[i]))
         for y in y_list[i]:
-            for y_word in seg.cut(y):
-                co_exist = find_pairs(x_l, y_word, word_tfidf, co_exist)
+            # for y_word in seg.cut(y):
+            co_exist = find_pairs(x_l, y, word_tfidf, co_exist)
     all_tfidf = {}
     for item in list(co_exist.keys()):
         tar_y = item.split('-')[1]
@@ -84,7 +89,7 @@ def fill_co_exsit_dict(x_list, y_list, word_tfidf, char_level = True):
         co_exist[item] = co_exist[item] / all_tfidf[item.split('-')[1]]
     return co_exist
 
-def fill_co_exsit_dict2(x_list, y_list, word_tfidf, char_level = True):
+def fill_co_exsit_dict2(x_list, y_list, word_tfidf, char_level, cleaned_y):
     co_exist = {}
     for i in tqdm(range(len(x_list))):
         if char_level:
@@ -92,8 +97,8 @@ def fill_co_exsit_dict2(x_list, y_list, word_tfidf, char_level = True):
         else:
             x_l = set(seg.cut(x_list[i]))
         for y in y_list[i]:
-            for y_word in seg.cut(y):
-                co_exist = find_pairs(x_l, y_word, word_tfidf, co_exist)
+            # for y_word in seg.cut(y):
+            co_exist = find_pairs(x_l, y, word_tfidf, co_exist, cleaned_y)
     all_tfidf = 0
     for item in list(co_exist.keys()):
         all_tfidf += co_exist[item]

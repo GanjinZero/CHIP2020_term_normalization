@@ -106,82 +106,85 @@ def find_same_char_max(x, cleaned_y, clean2standard, th, set_x, set_y):
     else:
         return clean2standard[max_y], max_score
 '''
-#new_x_list, _, _, _, new_y_list = load_train_icd()
-clean2standard, origin_y, standard2clean, cleaned_y = load_icd()
-new_x_list = load_test_icd()
 
-target = []
-sc = []
-#s_t = []
+if __name__ == "__main__":
+
+    #new_x_list, _, _, _, new_y_list = load_train_icd()
+    clean2standard, origin_y, standard2clean, cleaned_y = load_icd()
+    new_x_list = load_test_icd()
+
+    target = []
+    sc = []
+    #s_t = []
 
 
-#new_x_list = new_x_list[:100]
-#new_y_list = new_y_list[7000:]
+    #new_x_list = new_x_list[:100]
+    #new_y_list = new_y_list[7000:]
 
-'''
-with open("1024_150_0.001_5_word2vec_5_300_Dice_tfidfjson_90_0.8_(-1, 3)_2_none.txt", "r") as f:
-    lines = f.readlines()
+    '''
+    with open("1024_150_0.001_5_word2vec_5_300_Dice_tfidfjson_90_0.8_(-1, 3)_2_none.txt", "r") as f:
+        lines = f.readlines()
 
-for line in lines:
-    new_x_list.append(line.split('\t')[0])
-    new_y_list.append(line.split('\t')[2].strip().split('##'))
-    if '' in new_y_list[-1]:
-        new_y_list[-1].remove('')
-'''
+    for line in lines:
+        new_x_list.append(line.split('\t')[0])
+        new_y_list.append(line.split('\t')[2].strip().split('##'))
+        if '' in new_y_list[-1]:
+            new_y_list[-1].remove('')
+    '''
 
-th = 0.8
-set_x = [set(xx) for xx in new_x_list]
-set_y = [set(y) for y in cleaned_y]
-for i in trange(len(new_x_list)):
-    x = new_x_list[i]
-    t, s = find_same_char_max(x, cleaned_y, clean2standard, th, set_x[i], set_y)
-    #t, s = find_same_char_max(x, cleaned_y, clean2standard, th, set_x[i], set_y)
-    target.append(t)
-    sc.append(s)
-    #s_t.append(s_true)
+    th = 0.8
+    set_x = [set(xx) for xx in new_x_list]
+    set_y = [set(y) for y in cleaned_y]
+    for i in trange(len(new_x_list)):
+        x = new_x_list[i]
+        t, s = find_same_char_max(x, cleaned_y, clean2standard, th, set_x[i], set_y)
+        #t, s = find_same_char_max(x, cleaned_y, clean2standard, th, set_x[i], set_y)
+        target.append(t)
+        sc.append(s)
+        #s_t.append(s_true)
 
-'''
-best_th = 0.
-best_acc = 0.
-best_dic = None
-for th in np.arange(0, 1.1, 0.05):
-    f = open(f"same_char_count_{th}.txt", "w+")
+    '''
+    best_th = 0.
+    best_acc = 0.
+    best_dic = None
+    for th in np.arange(0, 1.1, 0.05):
+        f = open(f"same_char_count_{th}.txt", "w+")
+        same_char_count_dict = {}
+        count = 0
+        exact_count = 0
+        pred = []
+        for i in range(len(new_x_list)):
+            x = new_x_list[i]
+            right = False
+            if sc[i] >= th:
+                same_char_count_dict[x] = target[i]
+                right = set(same_char_count_dict[x]) == set(new_y_list[i])
+                pred.append(len(target[i]))
+            else:
+                right = len(new_y_list[i]) == 0
+                pred.append(0)
+            f.write('\t'.join([x, '##'.join(target[i]), str(sc[i]), str(right), '##'.join(new_y_list[i]), str(s_t[i])]) + '\n')
+            if right:
+                count += 1
+        acc = count / len(new_x_list)
+        print(th, np.bincount(pred), acc)
+        if acc > best_acc:
+            best_th = th
+            best_acc = acc
+            best_dic = same_char_count_dict
+        f.close()
+    print(best_th, best_acc)
+    '''
+
+    f = open(f"../models/same_char_count_dict_tmp.txt", "w+")
     same_char_count_dict = {}
-    count = 0
-    exact_count = 0
-    pred = []
     for i in range(len(new_x_list)):
         x = new_x_list[i]
-        right = False
-        if sc[i] >= th:
-            same_char_count_dict[x] = target[i]
-            right = set(same_char_count_dict[x]) == set(new_y_list[i])
-            pred.append(len(target[i]))
-        else:
-            right = len(new_y_list[i]) == 0
-            pred.append(0)
-        f.write('\t'.join([x, '##'.join(target[i]), str(sc[i]), str(right), '##'.join(new_y_list[i]), str(s_t[i])]) + '\n')
-        if right:
-            count += 1
-    acc = count / len(new_x_list)
-    print(th, np.bincount(pred), acc)
-    if acc > best_acc:
-        best_th = th
-        best_acc = acc
-        best_dic = same_char_count_dict
+        if sc[i] > th:
+            same_char_count_dict[x] = (target[i], sc[i])
+        f.write('\t'.join([x, '##'.join(target[i]), str(sc[i]) + '\n']))
     f.close()
-print(best_th, best_acc)
-'''
 
-f = open(f"../models/same_char_count_dict_tmp.txt", "w+")
-same_char_count_dict = {}
-for i in range(len(new_x_list)):
-    x = new_x_list[i]
-    if sc[i] > th:
-        same_char_count_dict[x] = (target[i], sc[i])
-    f.write('\t'.join([x, '##'.join(target[i]), str(sc[i]) + '\n']))
-f.close()
-
-#with open(f"../models/same_char_count_dict.pkl", "wb") as f:
-#    pickle.dump(same_char_count_dict, f)
+    #with open(f"../models/same_char_count_dict.pkl", "wb") as f:
+    #    pickle.dump(same_char_count_dict, f)
 
