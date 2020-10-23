@@ -78,25 +78,24 @@ def get_y_option_online(x, cleaned_y, co_exist, k=150, use_match=True):
 def get_set_y(cleaned_y):
     return [set(y) for y in cleaned_y]
 
+st.title("中文医学术语标准化：ICD-10")
+st.write("清华大学统计中心")
+
+text = st.text_input("", "大隐静脉曲张并且血栓性静脉炎")
+run = st.button("Normalize!")
+
+x_list, y_clean_list, y_list, y_clean_icd10_list, y_icd10_list, \
+    clean2standard, origin_y, standard2clean, cleaned_y, clean2code = init()
+co_exist = calculate_co_exist()
+model_path = "../models/model_last.pth"
+model = load_lstm_model(model_path)
+
+# Define parameters
+k = 150
+max_seq_length = 32
+embedding_path = "../models/word2id.pkl"
 
 def main():
-    st.title("中文医学术语标准化：ICD-10")
-    st.write("清华大学统计中心")
-
-    text = st.text_input("", "大隐静脉曲张并且血栓性静脉炎")
-    run = st.button("Normalize!")
-
-    x_list, y_clean_list, y_list, y_clean_icd10_list, y_icd10_list, \
-        clean2standard, origin_y, standard2clean, cleaned_y, clean2code = init()
-    co_exist = calculate_co_exist()
-    model_path = "../models/model_last.pth"
-    model = load_lstm_model(model_path)
-
-    # Define parameters
-    k = 150
-    max_seq_length = 32
-    embedding_path = "../models/word2id.pkl"
-
     if run:
         # step 1: dice + tfidf
         clean_text = clean(text)
@@ -127,11 +126,20 @@ def main():
         set_y = get_set_y(cleaned_y)
         t, s = find_same_char_max(clean_text, cleaned_y, clean2standard, 0.8, set(clean_text), set_y)
 
+        #st.write(lstm_option_y)
+        #st.write(jump_match_y)
+        #st.write(t)
+        #st.write([list(set(lstm_option_y + jump_match_y + t))])
+
+        now_y = list(set(lstm_option_y + jump_match_y + t))
+
         # step 5: reject
-        pred_y = reject_pred([clean_text], [list(set(lstm_option_y + jump_match_y + t))], icd_reject=True, standard2clean=standard2clean, clean2code=clean2code)
+        pred_y = reject_pred([clean_text], [[term.lower() for term in now_y]],
+                             icd_reject=True, standard2clean=standard2clean, clean2code=clean2code)
+        pred_y_list = [[clean2standard[yy] for yy in y] for y in pred_y]
 
         # step 6: syndrome
-        out_y = syndrome([clean_text], pred_y, origin_y)
+        out_y = syndrome([clean_text], pred_y_list, origin_y)
         for i in range(len(out_y[0])):
             st.write(f"- {out_y[0][i]}")
 
